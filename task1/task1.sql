@@ -1,4 +1,4 @@
---1 Display the number of films in each category, sorted in descending order.
+-- 1 Display the number of films in each category, sorted in descending order.
 SELECT 
 	c.name,
 	COUNT(film_id) AS number_of_films
@@ -7,7 +7,7 @@ FROM film_category
 GROUP BY c.name
 ORDER BY number_of_films DESC
 
---2 Display the top 10 actors whose films were rented the most, sorted in descending order.
+-- 2 Display the top 10 actors whose films were rented the most, sorted in descending order.
 SELECT
 	a.first_name,
 	a.last_name,
@@ -20,7 +20,7 @@ GROUP BY a.actor_id, a.first_name, a.last_name
 ORDER BY rental_count DESC
 LIMIT 10;
 
---3 Display the category of films that generated the highest revenue.
+-- 3 Display the category of films that generated the highest revenue.
 SELECT 
     c.name AS category,
     SUM(p.amount) AS total_revenue
@@ -37,14 +37,14 @@ ORDER BY
     total_revenue DESC
 LIMIT 1;
 
---4 Display the titles of films not present in the inventory. Write the query without using the IN operator.
+-- 4 Display the titles of films not present in the inventory. Write the query without using the IN operator.
 SELECT
 	title
 FROM film
 	LEFT JOIN inventory USING(film_id)
 WHERE inventory.film_id IS NULL
 
---5 Display the top 3 actors who appeared the most in films within the "Children" category. If multiple actors have the same count, include all.
+-- 5 Display the top 3 actors who appeared the most in films within the "Children" category. If multiple actors have the same count, include all.
 WITH children_category_actor_count AS(
 	SELECT
 		a.actor_id,
@@ -76,9 +76,7 @@ FROM ranked_actors
 WHERE rank_film_count <= 3
 
 
---6 Display cities with the count of active and inactive customers (active = 1). Sort by the count of inactive customers in descending order.
-SELECT * from customer LIMIT 5
-
+-- 6 Display cities with the count of active and inactive customers (active = 1). Sort by the count of inactive customers in descending order.
 
 SELECT
 	c.city,
@@ -90,7 +88,7 @@ FROM customer cu
 GROUP BY c.city
 ORDER BY inactive_count DESC
 
---7 Display the film category with the highest total rental hours in cities where customer.address_id belongs to that city and starts with the letter "a". Do the same for cities containing the symbol "-". Write this in a single query.
+-- 7 Display the film category with the highest total rental hours in cities where customer.address_id belongs to that city and starts with the letter "a". Do the same for cities containing the symbol "-". Write this in a single query.
 (
 SELECT
 	c.name AS category,
