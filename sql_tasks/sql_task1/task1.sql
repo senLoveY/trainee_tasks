@@ -21,21 +21,23 @@ ORDER BY rental_count DESC
 LIMIT 10;
 
 -- 3 Display the category of films that generated the highest revenue.
-SELECT 
-    c.name AS category,
-    SUM(p.amount) AS total_revenue
-FROM 
-    payment p
-    JOIN rental USING(rental_id)
-    JOIN inventory USING(inventory_id)
-    JOIN film USING(film_id)
-    JOIN film_category USING(film_id)
-    JOIN category c USING(category_id)
-GROUP BY 
-    c.category_id, c.name
-ORDER BY 
-    total_revenue DESC
-LIMIT 1;
+WITH ranked_revenue AS (
+    SELECT 
+        c.name AS category,
+        SUM(p.amount) AS total_revenue,
+        RANK() OVER (ORDER BY SUM(p.amount) DESC) AS rn
+    FROM payment p
+        JOIN rental USING(rental_id)
+        JOIN inventory USING(inventory_id)
+        JOIN film USING(film_id)
+        JOIN film_category USING(film_id)
+        JOIN category c USING(category_id)
+    GROUP BY c.category_id, c.name
+)
+SELECT category, total_revenue
+FROM ranked_revenue
+WHERE rn = 1;
+
 
 -- 4 Display the titles of films not present in the inventory. Write the query without using the IN operator.
 SELECT
@@ -91,8 +93,9 @@ ORDER BY inactive_count DESC
 -- 7 Display the film category with the highest total rental hours in cities where customer.address_id belongs to that city and starts with the letter "a". Do the same for cities containing the symbol "-". Write this in a single query.
 (
 SELECT
-	c.name AS category,
-	SUM(EXTRACT(EPOCH FROM (r.return_date - r.rental_date)) / 3600.0) AS rental_hours -- we can change r.return_date to COALESCE(r.return_date, NOW()) to count rental time of things that has not yet been returned
+    c.name AS category,
+    SUM(EXTRACT(EPOCH FROM (r.return_date - r.rental_date)) / 3600.0) AS rental_hours,
+    'Starts with A' AS source
 FROM rental r
     JOIN inventory i ON r.inventory_id = i.inventory_id
     JOIN film f ON i.film_id = f.film_id
@@ -101,7 +104,7 @@ FROM rental r
     JOIN customer cu ON r.customer_id = cu.customer_id
     JOIN address a ON cu.address_id = a.address_id
     JOIN city ci ON a.city_id = ci.city_id
-WHERE city LIKE 'a%'
+WHERE ci.city ILIKE 'a%'
 GROUP BY c.category_id, c.name
 ORDER BY rental_hours DESC
 LIMIT 1
@@ -109,8 +112,9 @@ LIMIT 1
 UNION ALL
 (
 SELECT
-	c.name AS category,
-	SUM(EXTRACT(EPOCH FROM (r.return_date - r.rental_date)) / 3600.0) AS rental_hours
+    c.name AS category,
+    SUM(EXTRACT(EPOCH FROM (r.return_date - r.rental_date)) / 3600.0) AS rental_hours,
+    'Contains "-"' AS source
 FROM rental r
     JOIN inventory i ON r.inventory_id = i.inventory_id
     JOIN film f ON i.film_id = f.film_id
@@ -119,10 +123,11 @@ FROM rental r
     JOIN customer cu ON r.customer_id = cu.customer_id
     JOIN address a ON cu.address_id = a.address_id
     JOIN city ci ON a.city_id = ci.city_id
-WHERE city LIKE '%-%'
+WHERE ci.city ILIKE '%-%'
 GROUP BY c.category_id, c.name
 ORDER BY rental_hours DESC
 LIMIT 1
 )
+
 
 
