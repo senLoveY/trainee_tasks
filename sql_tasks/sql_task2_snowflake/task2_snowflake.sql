@@ -1,6 +1,6 @@
 CREATE OR REPLACE TEMPORARY TABLE source_data (
-    param1 DATE,
-    param2 TIMESTAMP_NTZ
+                                                  param1 DATE,
+                                                  param2 TIMESTAMP_NTZ
 );
 
 INSERT INTO source_data (param1, param2) VALUES
@@ -26,64 +26,27 @@ INSERT INTO source_data (param1, param2) VALUES
                                              ('2025-07-03', '2025-07-07 10:53:30.915895');
 
 CREATE OR REPLACE TABLE test2_call_log (
-    call_id INT AUTOINCREMENT,
-    param1 DATE,
-    param2 TIMESTAMP_NTZ,
-    param3 DATE,
-    call_time TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP()
+                                           call_id INT AUTOINCREMENT,
+                                           param1 DATE,
+                                           param2 TIMESTAMP_NTZ,
+                                           param3 DATE,
+                                           call_time TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP()
 );
 
 
-CREATE OR REPLACE PROCEDURE test_2(PARAM1 DATE, PARAM2 TIMESTAMP_NTZ, PARAM3 DATE)
-RETURNS VARCHAR
-LANGUAGE SQL
-AS
-$$
-BEGIN
-INSERT INTO test2_call_log (param1, param2, param3)
-VALUES (:PARAM1, :PARAM2, :PARAM3);
-END;
-$$;
-
 CREATE OR REPLACE PROCEDURE call_test2_sequence()
-RETURNS STRING
-LANGUAGE JAVASCRIPT
+    RETURNS STRING
+    LANGUAGE SQL
 AS
-$$
-  let prev_date = '2025-01-28';
-
-  const rows = [];
-  const sql_query = `
-    SELECT param1::STRING, param2::STRING
-    FROM source_data
-    ORDER BY param1
-  `;
-
-  const stmt = snowflake.createStatement({ sqlText: sql_query });
-  const rs = stmt.execute();
-
-  while (rs.next()) {
-    rows.push([rs.getColumnValue(1), rs.getColumnValue(2)]);
-}
-
-  if (rows.length === 0) {
-    return "No data found in source_data.";
-}
-
-  let executed = 0;
-for (let i = 0; i < rows.length; i++) {
-    const curr_date = rows[i][0];
-    const ts = rows[i][1];
-
-    const call_sql = `CALL test_2('${curr_date}', '${ts}', '${prev_date}')`;
-    snowflake.execute({ sqlText: call_sql });
-
-    prev_date = curr_date;
-    executed++;
-}
-
-  return "Successfully executed " + executed + " calls with initial date '2025-01-28'.";
-$$;
+BEGIN
+    INSERT INTO test2_call_log (param1, param2, param3)
+    SELECT
+        param1,
+        param2,
+        LAG(param1, 1, '2025-01-28'::DATE) OVER (ORDER BY param1) as prev_date
+    FROM source_data;
+    RETURN 'Successfully processed ' || SQLROWCOUNT || ' rows.';
+END;
 
 CALL call_test2_sequence();
 
